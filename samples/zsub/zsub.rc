@@ -1,0 +1,17 @@
+//////////////////////////////////////////////////////////////////////////////
+//
+//  Version information for zsub.rc.
+//
+//  ZMVR Research Detours Package
+//
+//  Copyright (c) ZMVR.  All rights reserved.
+//
+
+#include "detver.h"
+
+#define VER_INTERNALNAME_STR        "zsub" DETOURS_STRINGIFY(DETOURS_BITS)
+#define VER_ORIGINALFILENAME_STR    "zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll"
+#define VER_FILEDESCRIPTION_STR     ""
+#define VER_COMPANYNAME_STR         "ZVMR"
+
+#include "common.ver"

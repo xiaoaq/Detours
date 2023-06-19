@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////
+﻿//////////////////////////////////////////////////////////////////////////////
 //
 //  Detours Test Program (setdll.cpp of setdll.exe)
 //
@@ -8,9 +8,15 @@
 //
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
+#include <iostream>
+#include <fstream>
 #include <windows.h>
 #include <shellapi.h>
 #include <detours.h>
+
+#include "share.h"
+
 #pragma warning(push)
 #if _MSC_VER > 1400
 #pragma warning(disable:6102 6103) // /analyze warnings
@@ -273,12 +279,28 @@ int CDECL main(int argc, char **argv)
 
               case 'd':                                 // Set DLL
               case 'D':
+              {
                 if ((strchr(argp, ':') != NULL || strchr(argp, '\\') != NULL) &&
                     GetFullPathNameA(argp, sizeof(s_szDllPath), s_szDllPath, &pszFilePart)) {
                 }
                 else {
                     StringCchPrintfA(s_szDllPath, sizeof(s_szDllPath), "%s", argp);
                 }
+                
+                {// TODO XIAO 待优化, 复制dll文件
+                    // 如果是个exe文件，截取路径
+                    string dir = GetFilePathWithoutFileName(argv[2]);
+                    if (dir != ""){
+                        printf("\nDDDD argument:%s\n", dir.c_str());
+                        string destFile = dir + s_szDllPath;
+                        if(!CopyFile(s_szDllPath, destFile.c_str())){
+                            printf("Failed to copy the dll file, destFile:%s\n", destFile.c_str());
+                        }else{
+                            printf("Success copy the dll file to destFile:%s\n", destFile.c_str());
+                        }
+                    }
+                }
+              }
                 break;
 
               case 'r':                                 // Remove extra set DLLs.

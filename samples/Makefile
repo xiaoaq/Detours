@@ -17,6 +17,8 @@ ROOT=..
 ##############################################################################
 
 all:
+    cd "$(MAKEDIR)\zsub"
+    @$(MAKE) /NOLOGO /$(MAKEFLAGS)
     cd "$(MAKEDIR)\syelog"
     @$(MAKE) /NOLOGO /$(MAKEFLAGS)
     cd "$(MAKEDIR)\simple"
@@ -96,6 +98,8 @@ all:
     cd "$(MAKEDIR)"
 
 clean:
+    cd "$(MAKEDIR)\zsub"
+    @$(MAKE) /NOLOGO /$(MAKEFLAGS) clean
     cd "$(MAKEDIR)\syelog"
     @$(MAKE) /NOLOGO /$(MAKEFLAGS) clean
     cd "$(MAKEDIR)\simple"
@@ -166,6 +170,8 @@ clean:
     -rmdir include 2>nul
 
 realclean:
+    cd "$(MAKEDIR)\zsub"
+    @$(MAKE) /NOLOGO /$(MAKEFLAGS) realclean
     cd "$(MAKEDIR)\syelog"
     @$(MAKE) /NOLOGO /$(MAKEFLAGS) realclean
     cd "$(MAKEDIR)\simple"
