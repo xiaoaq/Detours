@@ -11,13 +11,8 @@
 
 #include <stdio.h>
 #include <string>
-#include <vector>
-#include <iostream>
-#include <tchar.h>
-#include <atlstr.h>
 #include <strsafe.h>
 #include <map>
-#include <io.h>
 #include <windows.h>
 #include "detours.h"
 
@@ -29,17 +24,19 @@ using namespace std;
 #define DEBUG_MODE 0
 #endif
 
-// TODO XIAO have some encode/charcterset problems
-VOID dprintf(const char * fmt, ...)
+// Ouput log to DebugView.
+VOID dprintf(const char* fmt, ...)
 {
 #ifdef DEBUG_MODE
-    CHAR szBuf[1024];
+    const char TAG[8] = "[zsub] ";
+    char szBuf[1024 + 8] = { 0 };
 
     va_list args;
     va_start(args, fmt);
-    StringCchPrintfA(szBuf, sizeof(szBuf), fmt, args);
+    vsprintf_s(szBuf + 7, sizeof(szBuf) - 7, fmt, args);
     va_end(args);
 
+    sprintf_s(szBuf, sizeof(szBuf), "%s%s", TAG, szBuf + 7);
     OutputDebugStringA(szBuf);
 #endif
 }
@@ -74,17 +71,14 @@ bool find_file_recursive(const string& path, const string& file_name, string& fi
     }
     return false;
 }
+/////////////// Hook functions //////////////////////
 
-// Hook functions
 const char* (*pOrigStartBillingThread)(char *, char *, char *);
 // Hooked "StartBillingThread" Function
 const char* Hsbt(char *developID, char *gameID, char *token)
 {
-    // char buf[1024] = {0};
-    // sprintf_s(buf, "[zsub] Hsbt Params dID:%s - gID:%s - token:%s", developID, gameID, token);
-    // OutputDebugString(buf);
-    dprintf("[zsub] Hsbt...");
-
+    dprintf("Hsbt...");
+    // dprintf("Hsbt Params dID:%s - gID:%s - token:%s", developID, gameID, token);
     // preset white-list games.
     std::map<string, char*> gameMap({
         {"8497ecbd6a3d4e7ca7e1df3a6b9487c7", "ffd83bb69b42477ca36d1a744a40a5c4"}, 
@@ -111,20 +105,21 @@ const char* Hsbt(char *developID, char *gameID, char *token)
         {"14c715159eb846548c0582ad7ccb537f", "e51d9c9d441241cdb3f7cf3c3cf6b692"},
         {"5d5c75cf151c4706bff2911810039182", "2fda6e9e6ad241548d87dd10eaf8899b"}, // del, for test
         });
-    // dprintf("[zsub] Hsbt...%s", developID);
 
     auto it = gameMap.find(token);
     if (it != gameMap.end()) {
-        dprintf("[zsub] Find the key in the gameMap\n");
+        dprintf("Find the key in the gameMap\n");
         return it->second;
     }
-    dprintf("[zsub] No such key in the gameMap\n");
+    dprintf("No such key in the gameMap\n");
     
     // call original function
     // return pOrigStartBillingThread(developID, gameID, token);
 
     return "";
 }
+
+/////////////////////////////////////
 
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
 {
@@ -133,13 +128,13 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
     (void)hinst;
     (void)reserved;
     if (DetourIsHelperProcess()) {
-        dprintf("[zsub] DllMain DetourIsHelperProcess return.");
+        dprintf("DllMain DetourIsHelperProcess return.");
         return TRUE;
     }
     if (dwReason == DLL_PROCESS_ATTACH) {
         DetourRestoreAfterWith();
 
-        dprintf("[zsub] zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
+        dprintf("zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
                " Starting.\n");
 
         // 文件查找测试
@@ -154,29 +149,27 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
         }
         else{
             // 没有找到目标文件,抛出异常
-            dprintf("Error: [zsub] Not found target file.");
+            dprintf("Error: Not found target file.");
             return FALSE;
         }
 
-        char temp[1024] = {0};
-        sprintf_s(temp, "[zsub] Found File: %s", targetFilePath.c_str());
-        OutputDebugString(temp);
+        // dprintf("Found File: %s", targetFilePath.c_str());
 
         // GetModuleHandleW can be used in loaded dll
         hTargetDll = LoadLibrary(targetFilePath.c_str()); // "ZMVR.dll" or "CheckToken.dll"
         if(hTargetDll == NULL){
             
-            dprintf("Error: [zsub] hTargetDll load failed, return.");
+            dprintf("Error: hTargetDll load failed, return.");
             // throw an error
             return FALSE;
         }
 
         pOrigStartBillingThread = reinterpret_cast<const char* (*)(char*, char*, char*)>(GetProcAddress(hTargetDll, targetFuncName.c_str()));
         if (pOrigStartBillingThread == nullptr){
-            dprintf("Error [zsub] targetF is nullptr, return.");
+            dprintf("Error targetF is nullptr, return.");
             return TRUE;
         }
-        // dprintf("[zsub] pOrigStartBillingThread %p", pOrigStartBillingThread);
+        // dprintf("pOrigStartBillingThread %p", pOrigStartBillingThread);
         
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
@@ -184,13 +177,11 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
         error = DetourTransactionCommit();
 
         if (error == NO_ERROR) {
-            dprintf("[zsub] zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
+            dprintf("zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
                    " Start D...\n");
         }
         else {
-            // dprintf("[zsub] zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
-            //        " Error detouring StartBillingThread(): %ld\n", error);
-            dprintf("[zsub] zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
+            dprintf("zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
             " Error occur: %ld\n", error);
         }
 
@@ -206,10 +197,10 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
 
         if(hTargetDll != NULL){
             FreeLibrary(hTargetDll);
-            dprintf("[zsub] hTargetDll free.");
+            dprintf("hTargetDll free.");
         }
 
-        dprintf("[zsub] zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
+        dprintf("zsub" DETOURS_STRINGIFY(DETOURS_BITS) ".dll:"
         " quit. (result=%ld).\n", error);
     }
     return TRUE;
